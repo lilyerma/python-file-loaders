@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 59cbc75 (updates)
 
 # 🚀 Python File Loaders & Processor
 
