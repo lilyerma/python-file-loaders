@@ -1,0 +1,6 @@
+services:
+  downloader:
+    build: .
+    volumes:
+      - .:/app
+    tty: true
