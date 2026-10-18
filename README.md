@@ -1,6 +1,8 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 59cbc75 (updates)
 
-```markdown
 # 🚀 Python File Loaders & Processor
 
 За основу данного приложения взято практическое упражнение из репозитория [Data Engineering Practice](https://github.com/danielbeach/data-engineering-practice/blob/main/README.md), на базе которого была спроектирована собственная модульная архитектура, добавлены различные стратегии параллелизма, автоматическая распаковка архивов и полноценный CLI-интерфейс[cite: 1].
