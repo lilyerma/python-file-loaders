@@ -8,8 +8,10 @@ from downloader_pkg import (
     RequestsFileDownloader,
     WgetFileDownloader
 )
-from extractor import ZipExtractor
+from extractors.zip_extractor import ZipExtractor
 from benchmark import run_benchmark
+from noaa_loader import NoaaPipeline
+from experiment_s3 import run_experiment
 
 # Настройка логирования
 logging.basicConfig(
@@ -22,6 +24,7 @@ logger = logging.getLogger("CLI")
 RAW_DIR = "divvy_zips"
 EXTRACTED_DIR = "divvy_extracted"
 BENCH_DIRS = ["bench_requests", "bench_thread", "bench_wget", "bench_async"]
+NOAA_DIR = "downloads"
 
 # Дефолтный список ссылок на случай, если пользователь не передал свои
 DEFAULT_URIS = [
@@ -80,7 +83,7 @@ def cmd_extract(args):
 def cmd_clean(args):
     """Команда удаления всех созданных папок."""
     logger.info("Очистка всех временных данных...")
-    dirs_to_clean = [RAW_DIR, EXTRACTED_DIR] + BENCH_DIRS
+    dirs_to_clean = [RAW_DIR, EXTRACTED_DIR, NOAA_DIR] + BENCH_DIRS
     
     for d in dirs_to_clean:
         if os.path.exists(d):
@@ -94,6 +97,22 @@ def cmd_clean(args):
             
     logger.info("Очистка успешно завершена!")
 
+
+def handle_noaa_command(args):
+  try:
+    client = NoaaPipeline(base_url=args.url, output_dir=args.output_dir)
+    client.run_pipeline(target_timestamp=args.timestamp)
+  except Exception as e:
+    print(f"❌ Ошибка выполнения NOAA пайплайна: {e}")
+
+def cmd_experiment(args):
+  """Команда для запуска S3-эксперимента по CommonCrawl."""
+  print("🚀 Запуск S3-эксперимента из CLI...")
+  try:
+    run_experiment()
+    print("✨ Эксперимент успешно завершен!")
+  except Exception as e:
+    print(f"❌ Ошибка во время выполнения эксперимента: {e}")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -153,6 +172,36 @@ def main():
         description="Замеряет и сравнивает время работы thread, async, requests и wget."
     )
 
+    # --- 5. Команда: noaa ---
+    parser_noaa = subparsers.add_parser(
+        "noaa",
+        help=(
+          "Поиск по таймстампу, скачивание и обработка климатического файла с"
+          " NOAA"
+        ),
+    )
+    parser_noaa.add_argument(
+        "--url",
+        default=NoaaPipeline.DEFAULT_URL,
+        help="Базовый URL каталога NOAA NCEI",
+    )
+    parser_noaa.add_argument(
+        "--timestamp",
+        required=True,
+        help='Таймстамп для поиска в таблице, например: "2024-01-19 15:42"',
+    )
+    parser_noaa.add_argument(
+        "--output-dir",
+        default="./downloads",
+        help="Директория для сохранения скачанного файла",
+    )
+
+    # НОВЫЙ ПАРСЕР: experiment c s3
+    parser_experiment = subparsers.add_parser(
+      "experiment",
+      help="Запустить S3-эксперимент с CommonCrawl, стримингом и памятью",
+    )
+
     args = parser.parse_args()
 
     # Маршрутизатор
@@ -165,6 +214,16 @@ def main():
     elif args.command == "benchmark":
         logger.info("Запуск бенчмарка производительности...")
         run_benchmark()
+    elif args.command == "noaa":
+      print("🚀 Запуск NOAA пайплайна...")
+      try:
+          pipeline = NoaaPipeline(base_url=args.url, output_dir=args.output_dir)
+          pipeline.run(target_timestamp=args.timestamp)
+          print("✨ Задача по NOAA успешно выполнена!")
+      except Exception as e:
+          print(f"❌ Ошибка: {e}")
+    elif args.command == "experiment":
+        cmd_experiment(args)
     else:
         # Если команда не передана или введена с ошибкой, выводим справку
         parser.print_help()

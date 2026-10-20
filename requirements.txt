@@ -2,3 +2,6 @@ requests>=2.31.0
 aiohttp>=3.9.0
 wget>=3.2
 pytest>=7.0.0
+beautifulsoup4
+pandas>=2.0.0
+boto3>=1.28.0

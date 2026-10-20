@@ -7,6 +7,7 @@ from downloader_pkg import (
     AsyncFileDownloader
 )
 
+
 # Настройка логирования (включим уровень INFO, чтобы видеть процесс)
 logging.basicConfig(
     level=logging.INFO,
