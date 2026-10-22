@@ -10,20 +10,10 @@ class AsyncFileDownloader(BaseFileDownloader):
     """Асинхронный загрузчик на asyncio и aiohttp."""
 
     async def _download_single_async(self, session: aiohttp.ClientSession, url: str) -> tuple[str, str]:
-        """Асинхронный транспортный уровень."""
-        cleaned_url = url.strip()
-        
-        if not self._is_valid_url(cleaned_url):
-            return url, "INVALID_URL"
-
-        filename = self._get_filename(cleaned_url)
-        if not filename:
-            return url, "FILE_NOT_FOUND"
-            
-        output_path = f"{self.output_dir}/{filename}"
-
-        if self._check_already_exists(filename):
-            return url, "ALREADY_EXISTS"
+        """Асинхронный транспортный уровень с использованием базовой подготовки."""
+        cleaned_url, filename, output_path, skip_status = self._prepare(url)
+        if skip_status:
+            return url, skip_status
 
         try:
             logger.info("Асинхронный старт: %s", filename)
@@ -51,8 +41,12 @@ class AsyncFileDownloader(BaseFileDownloader):
         except Exception as e:
             return url, f"ERROR_{type(e).__name__}"
 
+    def _fetch(self, cleaned_url: str, output_path: str, filename: str) -> str:
+        """Заглушка для соблюдения контракта базового класса."""
+        pass
+
     def _download_single(self, url: str) -> tuple[str, str]:
-        """Заглушка, так как мы переопределяем download_all для асинхронности."""
+        """Заглушка для синхронного интерфейса."""
         pass
 
     async def download_all_async(self) -> dict[str, str]:

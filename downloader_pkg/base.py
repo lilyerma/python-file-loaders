@@ -32,40 +32,42 @@ class BaseFileDownloader(ABC):
         output_path = os.path.join(self.output_dir, filename)
         return os.path.exists(output_path)
 
-    # --- ЕДИНАЯ ПЕРЕИСПОЛЬЗУЕМАЯ ФУНКЦИЯ ДЛЯ ТРАНСПОРТА ---
-    def _safe_download_wrapper(self, url: str, download_func) -> tuple[str, str]:
+    def _prepare(self, url: str) -> tuple[str | None, str | None, str | None, str | None]:
         """
-        Универсальный шаблон (Template Method): 
-        Берет на себя всю рутину (валидацию, проверки, отлов ошибок), 
-        а в download_func передает управление только для скачивания конкретным инструментом.
+        Общая логика подготовки: валидация, имя, путь и проверка существования.
+        Возвращает кортеж (cleaned_url, filename, output_path, status_or_skip).
+        Если status_or_skip не None, значит файл нужно пропустить с этим статусом.
         """
         cleaned_url = url.strip()
         
-        # 1. Проверка валидности
         if not self._is_valid_url(cleaned_url):
             logger.warning("Пропущено (невалидный URL): '%s'", url)
-            return url, "INVALID_URL"
+            return cleaned_url, None, None, "INVALID_URL"
 
-        # 2. Получение имени файла
         filename = self._get_filename(cleaned_url)
         if not filename:
             logger.warning("Не удалось определить имя файла для URL: '%s'", cleaned_url)
-            return url, "FILE_NOT_FOUND"
+            return cleaned_url, None, None, "FILE_NOT_FOUND"
             
         output_path = os.path.join(self.output_dir, filename)
 
-        # 3. Проверка на существование (кэш)
         if self._check_already_exists(filename):
             logger.info("Файл уже существует, пропуск: %s", filename)
-            return url, "ALREADY_EXISTS"
+            return cleaned_url, filename, output_path, "ALREADY_EXISTS"
 
-        # 4 & 5. Вызов переданной функции скачивания с единым перехватом ошибок
+        return cleaned_url, filename, output_path, None
+
+    def _safe_download_wrapper(self, url: str) -> tuple[str, str]:
+        """
+        Шаблонный метод (Template Method) для синхронных загрузчиков.
+        """
+        cleaned_url, filename, output_path, skip_status = self._prepare(url)
+        if skip_status:
+            return url, skip_status
+
         try:
             logger.info("Старт загрузки: %s", filename)
-            
-            # Вызываем то, что передал потоковый или асинхронный класс
-            status = download_func(cleaned_url, output_path, filename)
-            
+            status = self._fetch(cleaned_url, output_path, filename)
             logger.info("Успешно обработано: %s", filename)
             return url, status
 
@@ -80,6 +82,12 @@ class BaseFileDownloader(ABC):
             return url, f"ERROR_{type(e).__name__}"
 
     @abstractmethod
-    def download_all(self) -> dict[str, str]:
-        """Оркестрация (потоки, asyncio и т.д.)."""
+    def _fetch(self, cleaned_url: str, output_path: str, filename: str) -> str:
+        """Абстрактный метод транспорта для реализации конкретным загрузчиком."""
         pass
+
+    @abstractmethod
+    def download_all(self) -> dict[str, str]:
+        """Оркестрация загрузки."""
+        pass
+

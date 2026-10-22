@@ -13,37 +13,34 @@ class ThreadFileDownloader(BaseFileDownloader):
         super().__init__(urls, output_dir)
         self.max_workers = max_workers
 
-    def _download_single(self, url: str) -> tuple[str, str]:
-        """Транспортный уровень для потоков (реализует конкретную логику с requests)."""
+    def _fetch(self, cleaned_url: str, output_path: str, filename: str) -> str:
+        """Реализация транспорта с HEAD и GET запросами для потоков."""
+        # HEAD-запрос для проверки размера
+        head_response = requests.head(cleaned_url, timeout=10, allow_redirects=True)
+        if head_response.status_code == 200:
+            size = head_response.headers.get("Content-Length")
+            if size:
+                logger.info("Размер '%s': %.2f MB", filename, int(size) / (1024 * 1024))
+
+        # GET-запрос с потоковой передачей
+        response = requests.get(cleaned_url, timeout=30, stream=True)
         
-        # Определяем внутреннюю функцию-транспорт, которую передадим в общую обертку
-        def transport_logic(cleaned_url, output_path, filename):
-            # HEAD-запрос для проверки размера
-            head_response = requests.head(cleaned_url, timeout=10, allow_redirects=True)
-            if head_response.status_code == 200:
-                size = head_response.headers.get("Content-Length")
-                if size:
-                    logger.info("Размер '%s': %.2f MB", filename, int(size) / (1024 * 1024))
+        if response.status_code != 200:
+            raise ConnectionError(f"HTTP Error {response.status_code}")
+        
+        if "text/html" in response.headers.get("Content-Type", "").lower():
+            return "INVALID_CONTENT_TYPE_HTML"
 
-            # GET-запрос с потоковой передачей
-            response = requests.get(cleaned_url, timeout=30, stream=True)
-            
-            if response.status_code != 200:
-                raise ConnectionError(f"HTTP Error {response.status_code}") # Перехватится базовым общим try-except
-            
-            if "text/html" in response.headers.get("Content-Type", "").lower():
-                return "INVALID_CONTENT_TYPE_HTML"
+        # Запись на диск чанками
+        with open(output_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    
+        return "SUCCESS"
 
-            # Запись на диск чанками
-            with open(output_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        
-            return "SUCCESS"
-
-        # Передаем наш транспорт в общий метод базового класса
-        return self._safe_download_wrapper(url, transport_logic)
+    def _download_single(self, url: str) -> tuple[str, str]:
+        return self._safe_download_wrapper(url)
 
     def download_all(self) -> dict[str, str]:
         """Оркестрация через ThreadPoolExecutor."""

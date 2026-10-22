@@ -75,7 +75,7 @@ python tests/test_connection.py
 ### В. Пакетный запуск SQL-миграций
 
 ```bash
-python cli.py run-sql
+python cli.py sql-run
 
 ```
 
