@@ -4,3 +4,18 @@ services:
     volumes:
       - .:/app
     tty: true
+  postgres:
+    image: postgres:15-alpine
+    container_name: pg_loader_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: loader_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

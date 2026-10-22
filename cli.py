@@ -2,6 +2,7 @@ import os
 import shutil
 import logging
 import argparse
+from csv_to_pg_loader.sql_runner import SqlScriptRunner
 from downloader_pkg import (
     ThreadFileDownloader,
     AsyncFileDownloader,
@@ -12,6 +13,11 @@ from extractors.zip_extractor import ZipExtractor
 from benchmark import run_benchmark
 from noaa_loader import NoaaPipeline
 from experiment_s3 import run_experiment
+from json_flattening.converter_json_csv import RaggedJsonToCsvConverter
+from csv_to_pg_loader.analyzer import CsvAnalyzer
+from csv_to_pg_loader.sql_saver import SqlScriptSaver
+from csv_to_pg_loader.db_manager import DatabaseManager
+from csv_to_pg_loader.sql_runner import SqlScriptRunner
 
 # Настройка логирования
 logging.basicConfig(
@@ -25,6 +31,7 @@ RAW_DIR = "divvy_zips"
 EXTRACTED_DIR = "divvy_extracted"
 BENCH_DIRS = ["bench_requests", "bench_thread", "bench_wget", "bench_async"]
 NOAA_DIR = "downloads"
+CSV_RESULT = "output_csv"
 
 # Дефолтный список ссылок на случай, если пользователь не передал свои
 DEFAULT_URIS = [
@@ -83,7 +90,7 @@ def cmd_extract(args):
 def cmd_clean(args):
     """Команда удаления всех созданных папок."""
     logger.info("Очистка всех временных данных...")
-    dirs_to_clean = [RAW_DIR, EXTRACTED_DIR, NOAA_DIR] + BENCH_DIRS
+    dirs_to_clean = [RAW_DIR, EXTRACTED_DIR, NOAA_DIR, CSV_RESULT] + BENCH_DIRS
     
     for d in dirs_to_clean:
         if os.path.exists(d):
@@ -116,7 +123,7 @@ def cmd_experiment(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="🚀 CLI-менеджер для скачивания, распаковки и управления архивами.",
+        description="🚀 CLI-менеджер для запуска шагов и упражнений по работе с файлами.",
         formatter_class=argparse.RawTextHelpFormatter
     )
     
@@ -196,10 +203,58 @@ def main():
         help="Директория для сохранения скачанного файла",
     )
 
-    # НОВЫЙ ПАРСЕР: experiment c s3
+    # ПАРСЕР: experiment c s3 (на самом деле с открытым хранилищем)
     parser_experiment = subparsers.add_parser(
       "experiment",
-      help="Запустить S3-эксперимент с CommonCrawl, стримингом и памятью",
+      help="Запустить эксперимент с CommonCrawl, стримингом и памятью",
+    )
+
+    # ПАРСЕР: поиск JSON-файлов по директории с разной глубиной и уплощение в csv
+    convert_parser = subparsers.add_parser(
+      "convert",
+      help="Рекурсивный поиск JSON-файлов, флаттенинг вложенных структур и конвертация в CSV",
+    )
+    convert_parser.add_argument(
+        "--input",
+        "-i",
+        type=str,
+        default="./data",
+        help="Директория с исходными JSON-файлами (по умолчанию: ./data)",
+    )
+    convert_parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        default="./output_csv",
+        help=(
+            "Директория для сохранения плоских CSV-файлов (по умолчанию:"
+            " ./output_csv)"
+        ),
+    )
+
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help="Найти CSV файлы в папке и вывести отчет по типам, min/max и null значениям",
+    )
+    analyze_parser.add_argument(
+        "--input",
+        "-i",
+        type=str,
+        default="csv_to_pg_loader/data",
+        help="Путь к директории с CSV файлами",
+    )
+
+    # --- Команда: run-sql ---
+    run_parser = subparsers.add_parser(
+        "run-sql",
+        help="Запустить все сохраненные .sql скрипты в PostgreSQL",
+    )
+    run_parser.add_argument(
+        "--dir",
+        "-d",
+        type=str,
+        default="csv_to_pg_loader/sql",
+        help="Путь к директории с .sql файлами",
     )
 
     args = parser.parse_args()
@@ -224,6 +279,32 @@ def main():
           print(f"❌ Ошибка: {e}")
     elif args.command == "experiment":
         cmd_experiment(args)
+    elif args.command == "convert":
+        print(
+            f"Запуск конвертации из '{args.input}' в целевую папку '{args.output}'..."
+        )
+        converter = RaggedJsonToCsvConverter(
+            root_dir=args.input, output_dir=args.output
+        )
+        converted_files = converter.process_all()
+        print(f"Готово! Успешно конвертировано файлов: {len(converted_files)}")
+    elif args.command == "analyze":
+        print(f"📊 Запуск анализа данных по пути: {args.input}")
+        analyzer = CsvAnalyzer(root_dir=args.input)
+        analyzer.run_analysis()
+    elif args.command == "save-sql":
+        saver = SqlScriptSaver()
+        saved_path = saver.save(filename=args.name, script_content=args.content)
+
+        print(f"✨ Готово! SQL-скрипт успешно сохранен: {saved_path}")
+
+    elif args.command == "run-sql":
+        # Инициализируем менеджер БД и раннер скриптов
+        db_manager = DatabaseManager()
+        runner = SqlScriptRunner(db_manager=db_manager)
+
+        # Запускаем выполнение папки
+        runner.run_folder(args.dir)
     else:
         # Если команда не передана или введена с ошибкой, выводим справку
         parser.print_help()
