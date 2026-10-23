@@ -8,11 +8,20 @@ DEFAULT_EXTRACTED_DIR = "divvy_extracted"
 DEFAULT_NOAA_DIR = "downloads"
 DEFAULT_CSV_RESULT = "output_csv"
 DEFAULT_BENCH_DIRS = ["bench_requests", "bench_thread", "bench_wget", "bench_async"]
+PYSPARK_DIR = "results"
+
+def register_command(subparsers):
+    """Регистрация команды clean."""
+    parser = subparsers.add_parser(
+        "clean", 
+        help="Удалить все созданные папки и файлы"
+    )
+    parser.set_defaults(func=run)
 
 def run(args):
     """Очистка всех временных директорий."""
     logger.info("Очистка всех временных данных...")
-    dirs_to_clean = [DEFAULT_RAW_DIR, DEFAULT_EXTRACTED_DIR, DEFAULT_NOAA_DIR, DEFAULT_CSV_RESULT] + DEFAULT_BENCH_DIRS
+    dirs_to_clean = [DEFAULT_RAW_DIR, DEFAULT_EXTRACTED_DIR, DEFAULT_NOAA_DIR, DEFAULT_CSV_RESULT, PYSPARK_DIR] + DEFAULT_BENCH_DIRS
     
     for d in dirs_to_clean:
         if os.path.exists(d):

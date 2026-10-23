@@ -6,30 +6,22 @@ from csv_to_pg_loader.ddl_generator import PostgresDdlGenerator
 class CsvAnalyzer:
   """Класс для рекурсивного поиска CSV-файлов и анализа их содержимого."""
 
-  def __init__(
-      self, root_dir: str | Path, ddl_output_dir: str | Path | None = None
-  ):
-    self.root_dir = Path(root_dir)
-    # Инициализируем генератор DDL (можно указать папку, куда складывать .sql файлы)
+  def __init__(self, root_dir: str | Path | None = None, ddl_output_dir: str | Path | None = None):
+    self.root_dir = Path(root_dir) if root_dir else None
     self.ddl_generator = PostgresDdlGenerator(output_dir=ddl_output_dir)
 
-  def find_csv_files(self) -> list[Path]:
-    """Рекурсивно находит все файлы с расширением .csv в директории."""
-    return list(self.root_dir.rglob("*.csv"))
-
-  def analyze_file(self, csv_path: Path) -> None:
-    """Анализирует CSV-файл, выводит статистику и генерирует DDL."""
+  def analyze_dataframe(self, df: pd.DataFrame, table_name: str) -> None:
+    """Анализирует готовый Pandas DataFrame, выводит статистику и генерирует DDL."""
     print(f"\n{'='*60}")
-    print(f"📁 Файл: {csv_path}")
+    print(f"📊 Таблица / Источник: {table_name}")
     print(f"{'='*60}")
 
     try:
-      df = pd.read_csv(csv_path)
       rows_count, cols_count = df.shape
       print(f"📊 Всего строк: {rows_count} | Колонок: {cols_count}")
 
       if rows_count == 0:
-        print("⚠️ Файл пуст.")
+        print("⚠️ Данные отсутствуют.")
         return
 
       # Сбор аналитики по колонкам
@@ -64,23 +56,35 @@ class CsvAnalyzer:
       print("\n--- Детальный отчет по колонкам ---")
       print(stats_df.to_string(index=False))
 
-      # Генерация DDL через выделенный класс
-      table_name = csv_path.stem.lower().replace("-", "_")
-      ddl_script = self.ddl_generator.generate_from_dataframe(df, table_name)
+      # Генерация DDL
+      clean_table_name = table_name.lower().replace("-", "_").replace(".", "_")
+      ddl_script = self.ddl_generator.generate_from_dataframe(df, clean_table_name)
 
-      print(f"\n--- Сгенерированный DDL ({table_name}) ---")
+      print(f"\n--- Сгенерированный DDL ({clean_table_name}) ---")
       print(ddl_script)
 
-      # Опционально сохраняем в отдельный .sql файл, если задана папка
-      saved_path = self.ddl_generator.save_ddl_to_file(ddl_script, table_name)
+      # Сохраняем в .sql файл
+      saved_path = self.ddl_generator.save_ddl_to_file(ddl_script, clean_table_name)
       if saved_path:
         print(f"💾 DDL успешно сохранен в файл: {saved_path}")
 
     except Exception as e:
+      print(f"[ERROR] Не удалось проанализировать датафрейм {table_name}: {e}")
+
+  def analyze_file(self, csv_path: Path) -> None:
+    """Оставляем метод для обратной совместимости с файлами на диске."""
+    try:
+      df = pd.read_csv(csv_path)
+      table_name = csv_path.stem
+      self.analyze_dataframe(df, table_name)
+    except Exception as e:
       print(f"[ERROR] Не удалось обработать файл {csv_path}: {e}")
 
   def run_analysis(self) -> None:
-    csv_files = self.find_csv_files()
+    if not self.root_dir:
+      print("❌ Корневая директория не задана.")
+      return
+    csv_files = list(self.root_dir.rglob("*.csv"))
     if not csv_files:
       print(f"❌ В директории '{self.root_dir}' не найдено CSV-файлов.")
       return
@@ -88,12 +92,3 @@ class CsvAnalyzer:
     print(f"🔍 Найдено CSV-файлов: {len(csv_files)}. Запуск анализа...")
     for csv_path in csv_files:
       self.analyze_file(csv_path)
-
-
-if __name__ == "__main__":
-  target_path = Path("python-file-loaders/csv_to_pg_loader/data")
-  # Указываем директорию, куда складывать готовые SQL-файлы миграций
-  analyzer = CsvAnalyzer(
-      root_dir=target_path, ddl_output_dir="python-file-loaders/csv_to_pg_loader/sql"
-  )
-  analyzer.run_analysis()

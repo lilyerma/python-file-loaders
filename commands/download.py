@@ -8,6 +8,13 @@ DEFAULT_URIS = [
     "https://divvy-tripdata.s3.amazonaws.com/Divvy_Trips_2020_Q1.zip",
 ]
 
+def register_command(subparsers):
+    p_download = subparsers.add_parser("download", help="Скачать zip-архивы по URL-адресам")
+    p_download.add_argument("-m", "--method", type=str, default="thread", choices=["thread", "async", "requests", "wget"])
+    p_download.add_argument("-w", "--workers", type=int, default=3, help="Количество потоков")
+    p_download.add_argument("urls", nargs="*", help="Список URL через пробел (опционально)")
+    p_download.set_defaults(func=run)
+
 def run(args):
     from downloader_pkg.factory import DownloaderFactory
     print(f"Инициализация загрузчика типа: '{args.method}'...")
