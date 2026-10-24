@@ -95,6 +95,7 @@ target/
 
 # Project specific: data, downloads, temporary outputs and logs
 downloads/
+results/
 output_csv/
 data/
 *.zip
