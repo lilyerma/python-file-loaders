@@ -11,7 +11,7 @@
 * **Новый рабочий процесс:** Пользователь запускает анализ через CLI, видит статистику и предложенный каркас DDL в консоли, при необходимости дорабатывает его руками и фиксирует в репозитории как `.sql` файл миграции.
 
 
-2. **Единая точка входа через CLI (`cli.py`):**
+2. **Единая точка входа через CLI (`new_cli.py`):**
 * Все операции инкапсулированы в удобный интерфейс командной строки. CLI выступает «корнем композиции» (Composition Root), связывая аналитические модули, менеджер баз данных и исполнители скриптов.
 
 
@@ -31,7 +31,7 @@ python-file-loaders/
  │    └── sql_runner.py          # Пакетный исполнитель миграций в цикле
  ├── tests/
  │    └── test_connection.py     # Тест доступности PostgreSQL
- ├── cli.py                      # Интерфейс командной строки
+ ├── new_cli.py                      # Интерфейс командной строки
  └── docker-compose.yml          # Инфраструктура (PostgreSQL в контейнере)
 
 ```
@@ -56,7 +56,7 @@ python-file-loaders/
 ### А. Анализ данных и получение DDL-шаблона
 
 ```bash
-python cli.py analyze --input csv_to_pg_loader/data
+python new_cli.py analyze --input csv_to_pg_loader/data
 
 ```
 
@@ -75,7 +75,7 @@ python tests/test_connection.py
 ### В. Пакетный запуск SQL-миграций
 
 ```bash
-python cli.py sql-run
+python new_cli.py sql-run
 
 ```
 

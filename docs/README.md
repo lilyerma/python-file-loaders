@@ -19,7 +19,9 @@
 5. **[Задача 5: Анализ данных, генерация DDL и миграции в PostgreSQL](./docs/task_05_csv_to_ddl.md)**
    * Рекурсивный анализ CSV-файлов (типы, null, min/max), автоматическая генерация схем `CREATE TABLE` с поименованными `PRIMARY KEY` и шаблонами `FOREIGN KEY`, управление подключением через SQLAlchemy и пакетный запуск миграций в цикле через изолированный Docker-контейнер с PostgreSQL.
 6. **[Задача 6: Модульный PySpark Аналитический Пайплайн](./docs/task_06_pyspark.md)**
-   * Распределенная обработка больших объемов транспортных данных (Divvy Trips) с использованием Apache Spark. Инкапсуляция логики ингестации архивов, динамический обход query-скриптов (`q1.py`–`q6.py`) с трекингом времени, обработка типов (`try_cast`, `NaN`, `null`) и выгрузка результатов.
+   * Распределенная обработка больших объемов транспортных данных (Divvy Trips) с использованием Apache Spark. Инкапсуляция логики ингестации архивов, динамический обход query-скриптов (`q1.py`–`q6.py`) с трекингом времени, обработка типов (`NaN`, `null`) и выгрузка результатов.
+7. **[Задача 7: PySpark-пайплайн анализа жестких дисков (Backblaze)]**(./docs/task_07_pyspark.md)**
+   * Чтение ZIP-архивов с CSV-данными «на лету» в оперативной памяти (без сохранения на диск через `sc.binaryFiles` и `zipfile`), выделение метаданных (`source_file`, `extracted_date`), парсинг бренда (`split`/`element_at`) и квантилирование емкости дисков по 5 квантилям (`ntile(5)` через вторичный датафрейм). Поддержка динамического запуска через CLI (`--query q7`).
 
 ---
 
@@ -138,3 +140,6 @@ python new_cli.py sql-run --dir csv_to_pg_loader/sql
 ```bash
 python new_cli.py run-pyspark --zip pyspark_task/data/Divvy_Trips_2019_Q4.zip
 ```
+* **Запуск конкретного PySpark запроса (Task 7):**
+```bash
+python cli.py run-pyspark --zip pyspark_task/data_7/hard-drive-2022-01-01-failures.csv.zip --query q7

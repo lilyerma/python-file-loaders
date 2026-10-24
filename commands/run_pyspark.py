@@ -10,6 +10,14 @@ def register_command(subparsers):
         required=True, 
         help="Путь к ZIP-архиву (например, pyspark_task/data/Divvy_Trips_2019_Q4.zip)"
     )
+
+    parser.add_argument(
+        "--query", 
+        required=False, 
+        default=None, 
+        help="Имя конкретного запроса для выполнения (например, q3, q7)"
+    )
+
     parser.set_defaults(func=run)
 
 
@@ -32,7 +40,7 @@ def run(args):
     try:
         # Вся тяжелая логика (распаковка, кодировки, цикл по запросам q1-q6, сохранение) 
         # инкапсулирована внутри модуля analytics пакета pyspark_task
-        execute_full_pipeline(spark, zip_path=args.zip)
+        execute_full_pipeline(spark, zip_path=args.zip, target_query=args.query)
         print("✅ Анализ успешно завершен! Результаты сохранены в папку results.")
     finally:
         spark.stop()

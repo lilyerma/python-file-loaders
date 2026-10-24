@@ -11,4 +11,4 @@
 
 ### 3. Как запустить эксперимент
 ```bash
-python cli.py experiment
+python new_cli.py experiment

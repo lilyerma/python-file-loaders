@@ -37,15 +37,19 @@ def save_result_to_csv(df: DataFrame, filename: str, results_dir: str = "results
         .csv(output_path)
     )
 
-def execute_full_pipeline(spark: SparkSession, zip_path: str):
-    """Главная функция пайплайна: загружает данные и последовательно прогоняет запросы с 1 по 6."""
+def execute_full_pipeline(spark: SparkSession, zip_path: str, target_query: str = None):
+    """Главная функция пайплайна: загружает данные и выполняет запросы (все или конкретный)."""
     logger.info("🏁 Старт выполнения пайплайна для архива: %s", zip_path)
     
-    # 1. Загружаем данные в Spark DataFrame с автоподбором кодировок
+    # 1. Загружаем данные в Spark DataFrame
     df = read_target_csv_from_zip_to_spark(spark, zip_path)
     
-    # 2. Список модулей запросов, которые нужно выполнить
-    query_modules = ["q1", "q2", "q3", "q4", "q5", "q6"]
+    # 2. Определяем список запросов для выполнения
+    if target_query:
+        # Приводим к нижнему регистру для надежности (например, "Q3" -> "q3")
+        query_modules = [target_query.lower()]
+    else:
+        query_modules = ["q1", "q2", "q3", "q4", "q5", "q6"]
     
     for q_name in query_modules:
         try:

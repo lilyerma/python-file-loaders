@@ -11,4 +11,4 @@
 ### 3. Как использовать
 
   ```bash
-  python cli.py convert --input ./data --output ./output_csv
+  python new_cli.py convert --input ./data --output ./output_csv

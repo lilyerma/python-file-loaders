@@ -29,7 +29,7 @@
 
 ```bash
 # Многопоточная загрузка (по умолчанию)
-python cli.py download --method thread
+python new_cli.py download --method thread
 
 # Асинхронная загрузка пользовательских ссылок
-python cli.py download --method async [https://example.com/file1.zip](https://example.com/file1.zip) [https://example.com/file2.zip](https://example.com/file2.zip)
+python new_cli.py download --method async [https://example.com/file1.zip](https://example.com/file1.zip) [https://example.com/file2.zip](https://example.com/file2.zip)
