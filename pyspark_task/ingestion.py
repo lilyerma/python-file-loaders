@@ -1,55 +1,5 @@
-# import os
-# import zipfile
-# import logging
-# from pyspark.sql import SparkSession, DataFrame
-# from pyspark.sql.functions import col, input_file_name, regexp_replace, split, element_at, when, regexp_extract
-
-# logger = logging.getLogger("Ingestion")
-
-# def read_target_csv_from_zip_to_spark(spark: SparkSession, zip_path: str, temp_dir: str = "./temp_extracted") -> DataFrame:
-#     if not os.path.exists(zip_path):
-#         raise FileNotFoundError(f"Архив не найден: {zip_path}")
-
-#     # ИСПРАВЛЕНИЕ: Корректно убираем расширение, даже если оно двойное (.csv.zip)
-#     base_name = os.path.basename(zip_path)
-#     if base_name.endswith(".zip"):
-#         zip_name = base_name[:-4]  # отрезаем .zip
-#     else:
-#         zip_name = base_name
-    
-#     # Если на конце осталась точка с csv (например, ...failures.csv), убираем и её для поиска внутри архива
-#     search_query = zip_name[:-4] if zip_name.endswith(".csv") else zip_name
-
-#     os.makedirs(temp_dir, exist_ok=True)
-
-#     with zipfile.ZipFile(zip_path, 'r') as zf:
-#         all_csvs = [
-#             name for name in zf.namelist() 
-#             if name.endswith('.csv') and '__MACOSX' not in name and not os.path.basename(name).startswith('.')
-#         ]
-        
-#         if not all_csvs:
-#             raise ValueError(f"В архиве {zip_path} не найдено подходящих CSV-файлов.")
-        
-#         # Ищем файл, имя которого похоже на имя архива
-#         target_file = next((f for f in all_csvs if search_query.lower() in f.lower()), all_csvs[0])
-#         logger.info("📄 Целевой файл в архиве: %s -> %s", zip_path, target_file)
-        
-#         extracted_file_path = os.path.join(temp_dir, target_file)
-        
-#         # Защита от ошибки с существующей директорией
-#         if os.path.exists(extracted_file_path):
-#             if os.path.isdir(extracted_file_path):
-#                 shutil.rmtree(extracted_file_path)
-#             else:
-#                 os.remove(extracted_file_path)
-
-#         zf.extract(target_file, path=temp_dir)
-
-
-#     logger.info("   ✅ Файл успешно распакован во временную зону: %s", extracted_file_path)
-
 import io
+import os
 import zipfile
 import logging
 from pyspark.sql import SparkSession, DataFrame
@@ -97,7 +47,7 @@ def read_target_csv_from_zip_to_spark(spark: SparkSession, zip_path: str) -> Dat
 
     # 3. Добавляем метаданные из имени файла архива (т.к. input_file_name() для binaryFiles вернет путь к самому .zip)
     # Вытаскиваем имя архива в качестве source_file
-    import os
+
     archive_filename = os.path.basename(zip_path)
     # Превращаем имя вида hard-drive-2022-01-01-failures.csv.zip в нормальное имя csv для source_file
     csv_mock_name = archive_filename[:-4] if archive_filename.endswith(".zip") else archive_filename
@@ -105,19 +55,6 @@ def read_target_csv_from_zip_to_spark(spark: SparkSession, zip_path: str) -> Dat
         csv_mock_name = csv_mock_name[:-4]
 
     spark_df = spark_df.withColumn("source_file", regexp_extract(spark_df.columns[0], "", 0)) # заглушка или подставляем имя
-    # # Или проставим имя файла через lit:
-    # from pyspark.sql.functions import lit
-    # spark_df = spark_df.withColumn("source_file", lit(csv_mock_name.replace(".zip", "")))
-
-    # # Читаем CSV напрямую в PySpark DataFrame с автоопределением схемы и заголовка
-    # # Используем encoding="UTF-8" (или "ISO-8859-1" / latin1 если потребуется)
-    # spark_df = (
-    #     spark.read
-    #     .option("header", "true")
-    #     .option("inferSchema", "true")
-    #     .option("charset", "UTF-8")
-    #     .csv(extracted_file_path)
-    # )
 
     # Добавляем колонку с именем исходного файла из метаданных пути Spark
     spark_df = spark_df.withColumn(

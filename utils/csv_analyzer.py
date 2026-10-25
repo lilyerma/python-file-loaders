@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-from csv_to_pg_loader.ddl_generator import PostgresDdlGenerator 
+from utils.ddl_generator import PostgresDdlGenerator 
 
 
 class CsvAnalyzer:

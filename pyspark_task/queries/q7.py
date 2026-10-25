@@ -1,4 +1,4 @@
-from pyspark.sql.functions import col, split, element_at, desc
+from pyspark.sql.functions import col, split, element_at, desc, concat_ws, sha2
 from pyspark.sql import DataFrame
 
 from pyspark.sql.window import Window
@@ -40,6 +40,19 @@ def run(df: DataFrame) -> DataFrame:
         on="model",
         how="left"
     )
+
+
+
+    # # Define the columns that make a record unique
+    # unique_cols = ["model", "capacity_bytes"]
+
+    # # Create the primary_key column
+    # df_main_enriched = df_main_enriched.withColumn(
+    #     "primary_key", 
+    #     sha2(concat_ws("_", *[col(c) for c in unique_cols]), 256)
+    # )
+
+    # df.select("primary_key", *unique_cols).show(5, truncate=False)
 
 
     q7 = df_main_enriched.withColumn(

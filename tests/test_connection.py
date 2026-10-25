@@ -1,13 +1,15 @@
-from csv_to_pg_loader.db_manager import DatabaseManager
+from db_managers.db_factory import DBManagerFactory
+from config import POSTGRES_URL
 from sqlalchemy import text
 
 def test_db_connection():
     print("🔄 Проверка подключения к PostgreSQL...")
     try:
-        db = DatabaseManager()
-        # Используем наш контекстный менеджер соединения
-        with db.get_connection() as conn:
-            # Выполняем простой тестовый запрос
+        # Создаем менеджер через фабрику с использованием параметров из config.py
+        db_manager = DBManagerFactory.create_manager("postgres", connection_url=POSTGRES_URL)
+        
+        # Используем соединение через менеджер
+        with db_manager.connect() as conn:
             result = conn.execute(text("SELECT version();")).fetchone()
             print("✅ Успешное подключение к базе данных!")
             print(f"📌 Версия PostgreSQL: {result[0]}")

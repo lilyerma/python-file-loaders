@@ -1,4 +1,5 @@
 import logging
+from extractors.zip_extractor import ZipExtractor
 
 logger = logging.getLogger("CLI.Extract")
 DEFAULT_RAW_DIR = "divvy_zips"
@@ -10,7 +11,6 @@ def register_command(subparsers):
     
 def run(args):
     """Распаковка архивов."""
-    from extractors.zip_extractor import ZipExtractor
 
     logger.info("Запуск распаковки из %s в %s", DEFAULT_RAW_DIR, DEFAULT_EXTRACTED_DIR)
     extractor = ZipExtractor(source_dir=DEFAULT_RAW_DIR, target_dir=DEFAULT_EXTRACTED_DIR)

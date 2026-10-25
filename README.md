@@ -22,6 +22,8 @@
    * Распределенная обработка больших объемов транспортных данных (Divvy Trips) с использованием Apache Spark. Инкапсуляция логики ингестации архивов, динамический обход query-скриптов (`q1.py`–`q6.py`) с трекингом времени, обработка типов (`NaN`, `null`) и выгрузка результатов.
 7. **[Задача 7: PySpark-пайплайн анализа жестких дисков (Backblaze)](./docs/task_07_pyspark.md)**
    * Чтение ZIP-архивов с CSV-данными «на лету» в оперативной памяти (без сохранения на диск через `sc.binaryFiles` и `zipfile`), выделение метаданных (`source_file`, `extracted_date`), парсинг бренда (`split`/`element_at`) и квантилирование емкости дисков по 5 квантилям (`ntile(5)` через вторичный датафрейм). Поддержка динамического запуска через CLI (`--query q7`).
+8. **[Задача 8 (на основе Exercise 8): Аналитика, трансформации и Parquet-партиционирование на DuckDB](./docs/task_08_duckdb_parquet.md)**
+   * Использование аналитического движка DuckDB для эффективного выполнения SQL-запросов и нативного экспорта витрин в формат **Apache Parquet с динамическим партиционированием** (`PARTITION_BY`). Выделение логики в изолированный класс `ParquetExporter` и CLI-команду `parquet-run`.
 
 ---
 
@@ -30,25 +32,31 @@
 ```text
 python-file-loaders/
 ├── commands/                # Изолированные модули CLI-команд (паттерн Плагинов с авторегистрацией)
-├── pyspark_task/            # Пакет аналитики на Apache Spark (оркестратор, ингестация, queries/q1-q6)
-├── downloader_pkg/          # Сетевые загрузчики (BaseFileDownloader, фабрика, thread/async/requests/wget/s3)
+│   ├── sql_run.py           # Пакетный запуск SQL-скриптов из папки
+│   └── parquet_run.py       # Точечный экспорт SQL-запроса в Parquet с партициями
+├── db_managers/             # Менеджеры баз данных (DuckDB, PostgreSQL, фабрика)
+│   ├── base.py              # Абстрактный базовый класс БД
+│   ├── db_factory.py        # Фабрика соединений с авторегистрацией
+│   ├── duckdb_manager.py    # Менеджер DuckDB (транзакции, DataFrame, COPY)
+│   ├── sql_runner.py        # Оркестратор папок со скриптами
+│   └── parquet_exporter.py  # Выделенный сервис экспорта в Parquet
+├── pyspark_task/            # Пакет аналитики на Apache Spark
+├── downloader_pkg/          # Сетевые загрузчики
 ├── csv_to_pg_loader/        # Чтение csv и создание таблиц в PG (Exercise 5)
-├── extractors/              # Модули распаковки архивов (ZIP / GZ) (Часть Exercise 1 и 3)
-├── readers/                 # Потоковая читалка (LineReader) (Часть Exercise 2)
-├── utils/                   # Профайлер памяти (tracemalloc) (Допом к Exercise 2)
-├── docs/                    # Документация по задачам 
+├── extractors/              # Модули распаковки архивов (ZIP / GZ)
+├── readers/                 # Потоковая читалка (LineReader)
+├── utils/                   # Профайлер памяти (tracemalloc)
+├── docs/                    # Документация по задачам (включая task_08)
 ├── tests/                   # Набор unit-тестов (pytest)
 ├── new_cli.py               # Главная точка входа CLI (автообнаружение и регистрация команд)
-├── json_flattening/         # Поиск json файлов и приведение к плоскому csv (Exercise 4)
-├── benchmark.py             # Скрипт сравнения времени загрузки разными loader-ами (Exercise 1)
-├── noaa_loader.py           # Парсер сайта noaa (Exercise 2)
-├── experiment_s3.py         # Скрипт облачного стриминг-эксперимента (Exercise 3)
-├── Dockerfile               # Инструкция сборки Docker-образа (включает Java JDK для Spark)
-├── docker-compose.yml       # Конфигурация сервисов Docker
-├── requirements.txt         # Зависимости проекта (включая pyspark)
+├── json_flattening/         # Конвертер JSON в CSV
+├── benchmark.py             # Скрипт бенчмарка загрузчиков
+├── noaa_loader.py           # Парсер NOAA
+├── experiment_s3.py         # Облачный стриминг-эксперимент
+├── Dockerfile               # Инструкция сборки Docker-образа
+├── docker-compose.yml       # Конфигурация сервисов
+├── requirements.txt         # Зависимости проекта
 └── README.md                # Главная документация
-```
-
 ---
 
 ## ⚙️ Требования и установка (Локально)
@@ -142,4 +150,13 @@ python new_cli.py run-pyspark --zip pyspark_task/data/Divvy_Trips_2019_Q4.zip
 ```
 * **Запуск конкретного PySpark запроса (Task 7):**
 ```bash
-python cli.py run-pyspark --zip pyspark_task/data_7/hard-drive-2022-01-01-failures.csv.zip --query q7
+python new_cli.py run-pyspark --zip pyspark_task/data_7/hard-drive-2022-01-01-failures.csv.zip --query q7
+```
+* **Запуск конкретного SQL запроса и сохранение в Parquet (Task 8):**
+```bash
+python new_cli.py parquet-run -f duck_db/sql/q4.sql -o duck_db/output -p '"Model Year"'
+```
+* **Запуск конкретного папки с SQL запросами и сохранение в csv (Task 8):**
+```bash
+python new_cli.py sql-run -t duckdb -d duck_db/sql
+```
