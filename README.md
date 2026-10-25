@@ -143,7 +143,7 @@ python new_cli.py analyze --input csv_to_pg_loader/data
 * **Пакетный запуск SQL-миграций в PostgreSQL (Task 5):**
 ```bash
 python new_cli.py sql-run --dir csv_to_pg_loader/sql
-
+```
 * **Запуск модульного PySpark-пайплайна (Запросы Q1–Q6) (Task 6):**
 ```bash
 python new_cli.py run-pyspark --zip pyspark_task/data/Divvy_Trips_2019_Q4.zip
