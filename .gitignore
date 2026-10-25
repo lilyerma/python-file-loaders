@@ -102,3 +102,6 @@ data/
 *.gz
 *.csv
 *.log
+*.duckdbanalytics.duckdb
+*.duckdb
+output_parquet/
