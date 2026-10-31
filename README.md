@@ -162,3 +162,8 @@ python new_cli.py parquet-run -f duck_db/sql/q4.sql -o duck_db/output -p '"Model
 ```bash
 python new_cli.py sql-run -t duckdb -d duck_db/sql
 ```
+
+* **Запуск расчетов Task 9:**
+```bash
+python python lazy_polars/analyze.py
+```
