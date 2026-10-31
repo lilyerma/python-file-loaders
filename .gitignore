@@ -105,3 +105,4 @@ data/
 *.duckdbanalytics.duckdb
 *.duckdb
 output_parquet/
+lazy_polars/data/

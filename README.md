@@ -24,6 +24,7 @@
    * Чтение ZIP-архивов с CSV-данными «на лету» в оперативной памяти (без сохранения на диск через `sc.binaryFiles` и `zipfile`), выделение метаданных (`source_file`, `extracted_date`), парсинг бренда (`split`/`element_at`) и квантилирование емкости дисков по 5 квантилям (`ntile(5)` через вторичный датафрейм). Поддержка динамического запуска через CLI (`--query q7`).
 8. **[Задача 8 (на основе Exercise 8): Аналитика, трансформации и Parquet-партиционирование на DuckDB](./docs/task_08_duckdb_parquet.md)**
    * Использование аналитического движка DuckDB для эффективного выполнения SQL-запросов и нативного экспорта витрин в формат **Apache Parquet с динамическим партиционированием** (`PARTITION_BY`). Выделение логики в изолированный класс `ParquetExporter` и CLI-команду `parquet-run`.
+9. **[Задача 9 (на основе Exercise 9): Ленивые вычисления с Polars (Polars Lazy API)](./docs/task_09_polars.md)**
 
 ---
 
@@ -50,6 +51,7 @@ python-file-loaders/
 ├── tests/                   # Набор unit-тестов (pytest)
 ├── new_cli.py               # Главная точка входа CLI (автообнаружение и регистрация команд)
 ├── json_flattening/         # Конвертер JSON в CSV
+├── lazy_polars/             # Запросы к csv с помощью polars
 ├── benchmark.py             # Скрипт бенчмарка загрузчиков
 ├── noaa_loader.py           # Парсер NOAA
 ├── experiment_s3.py         # Облачный стриминг-эксперимент
